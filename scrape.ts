@@ -1,7 +1,14 @@
 import { chromium } from "playwright";
 import { writeFileSync } from "fs";
 
-async function scrape(username, maxTweets = 100) {
+interface Tweet {
+  id: string | null;
+  url: string | null;
+  date: string | null;
+  text: string;
+}
+
+async function scrape(username: string, maxTweets: number = 100): Promise<void> {
   console.log(`Scraping @${username}`);
 
   const browser = await chromium.launch({
@@ -35,7 +42,7 @@ async function scrape(username, maxTweets = 100) {
 
   console.log("Tweets are visible, starting scroll…");
 
-  const tweets = new Set();
+  const tweets = new Set<string>();
 
   while (tweets.size < maxTweets) {
     const items = await page.$$eval(
@@ -46,10 +53,10 @@ async function scrape(username, maxTweets = 100) {
           const text = el.querySelector('[data-testid="tweetText"]');
 
           return {
-            id: time?.parentElement?.href?.split("/").pop() ?? null,
-            url: time?.parentElement?.href ?? null,
+            id: time?.parentElement?.getAttribute("href")?.split("/").pop() ?? null,
+            url: time?.parentElement?.getAttribute("href") ?? null,
             date: time?.getAttribute("datetime") ?? null,
-            text: text?.innerText ?? "",
+            text: text?.textContent ?? "",
           };
         })
     );
@@ -64,11 +71,11 @@ async function scrape(username, maxTweets = 100) {
     await page.waitForTimeout(2000);
   }
 
-  const arr = [...tweets].map((x) => JSON.parse(x));
+  const arr: Tweet[] = [...tweets].map((x) => JSON.parse(x));
   writeFileSync("tweets.json", JSON.stringify(arr, null, 2));
 
   console.log(`Saved ${arr.length} tweets to tweets.json`);
   await browser.close();
 }
 
-scrape("AdityaMandal_", 100);
+scrape("samirande_", 100);

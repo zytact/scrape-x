@@ -182,13 +182,31 @@ function analyzeTweetFrequency(): void {
         byDay[dayKey] = (byDay[dayKey] || 0) + 1;
       }
 
-      const dayCounts = Object.values(byDay);
-      const avgTweetsPerDay = dayCounts.length > 0 
-        ? dayCounts.reduce((sum, count) => sum + count, 0) / dayCounts.length 
+      // Find full date range (earliest to latest tweet)
+      const dates = validTweets.map(t => t.parsedDate.getTime());
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      minDate.setHours(0, 0, 0, 0);
+      maxDate.setHours(23, 59, 59, 999);
+
+      // Calculate total days in range
+      const totalDaysInRange = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Create array with counts for ALL days (including zeros)
+      const allDayCounts: number[] = [];
+      const currentDate = new Date(minDate);
+      for (let i = 0; i < totalDaysInRange; i++) {
+        const dayKey = currentDate.toISOString().split("T")[0];
+        allDayCounts.push(byDay[dayKey] || 0);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const avgTweetsPerDay = totalDaysInRange > 0 
+        ? validTweets.length / totalDaysInRange 
         : 0;
       
-      const variance = dayCounts.length > 0
-        ? dayCounts.reduce((sum, count) => sum + Math.pow(count - avgTweetsPerDay, 2), 0) / dayCounts.length
+      const variance = totalDaysInRange > 0
+        ? allDayCounts.reduce((sum, count) => sum + Math.pow(count - avgTweetsPerDay, 2), 0) / totalDaysInRange
         : 0;
       const stdDevTweetsPerDay = Math.sqrt(variance);
 
@@ -210,7 +228,7 @@ function analyzeTweetFrequency(): void {
       const stdDevGap = Math.sqrt(gapVariance);
 
       // Calculate burst index (max tweets/day ÷ avg tweets/day)
-      const maxTweetsPerDay = dayCounts.length > 0 ? Math.max(...dayCounts) : 0;
+      const maxTweetsPerDay = allDayCounts.length > 0 ? Math.max(...allDayCounts) : 0;
       const burstIndex = avgTweetsPerDay > 0 ? maxTweetsPerDay / avgTweetsPerDay : 0;
 
       const result: FrequencyData = {

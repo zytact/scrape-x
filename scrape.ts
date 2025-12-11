@@ -1,54 +1,11 @@
 import { chromium } from 'playwright';
-import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 
 interface Tweet {
     id: string | null;
     url: string | null;
     date: string | null;
     text: string;
-}
-
-interface AuthState {
-    cookies: Array<{
-        name: string;
-        value: string;
-        domain: string;
-        path: string;
-        expires: number;
-        httpOnly: boolean;
-        secure: boolean;
-        sameSite: 'Strict' | 'Lax' | 'None';
-    }>;
-}
-
-function loadAuthState(filePath: string = 'auth.json'): AuthState | null {
-    try {
-        console.log(`Checking for auth file: ${filePath}`);
-        if (existsSync(filePath)) {
-            console.log(`Auth file found, loading cookies...`);
-            const data = readFileSync(filePath, 'utf-8');
-            const authState = JSON.parse(data);
-            console.log(`Loaded ${authState.cookies?.length || 0} cookies`);
-            return authState;
-        } else {
-            console.log(`Auth file not found at: ${filePath}`);
-        }
-    } catch (error) {
-        console.error(`Error loading auth state: ${(error as Error).message}`);
-    }
-    return null;
-}
-
-function saveAuthState(
-    authState: AuthState,
-    filePath: string = 'auth.json'
-): void {
-    try {
-        writeFileSync(filePath, JSON.stringify(authState, null, 2));
-        console.log(`Authentication saved to ${filePath}`);
-    } catch (error) {
-        console.error(`Error saving auth state: ${(error as Error).message}`);
-    }
 }
 
 async function scrape(
@@ -98,11 +55,7 @@ async function scrape(
         timeout: 300000, // 5 minutes to complete login
     });
 
-    console.log('Login detected! Saving authentication...');
-    const cookies = await context.cookies();
-    saveAuthState({ cookies });
-
-    console.log('Authentication saved. Now navigating to profile...\n');
+    console.log('Login detected! Now navigating to profile...\n');
 
     // Now navigate to the target profile
     const url = `https://x.com/${username}`;
